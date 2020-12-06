@@ -42,7 +42,7 @@ function getPointGen() {
 	if(player.ab.points >= 2) gain = gain.div(60)
 	let Adapter = new Decimal(1).div(3).mul(new Decimal(3).add(player.ab.points))
 	let Adapter2 = new Decimal(30).add(new Decimal(10).times(player.ab.points))
-	if(player.s.buyables[21] <= -1) gain = gain.div(new Decimal(2).mul(new Decimal(player.s.buyables[21]).mul(-1).add(1)))
+	if(player.s.buyables[21] <= -1) gain = gain.div(new Decimal(2).pow(new Decimal(player.s.buyables[21]).mul(-1)))
 		else gain = gain.mul(new Decimal(2).pow(player.s.buyables[21]));
         let hahaSoftcapGoBrrrrrrrr = new Decimal(1024).mul(Adapter)
 		if(player.s.buyables[21] <= -1) hahaSoftcapGoBrrrrrrrr = hahaSoftcapGoBrrrrrrrr.mul(new Decimal(player.s.buyables[21]).mul(-1).add(1))
@@ -63,6 +63,7 @@ function getPointGen() {
 		if (hasUpgrade("s", 22) && player.ab.points >=2) gain = gain.mul(layers.diff.effect())
 		if (hasUpgrade("c", 21) && player.c.points < 0) gain = gain.mul(0.01)
 		else if (hasUpgrade("c", 21)) gain = gain.mul(new Decimal(1).add(player.c.chaoticEnergy.div(10)).root(10))
+		if (hasUpgrade("n", 11)) gain = gain.mul(upgradeEffect("n", 11))
         if (inChallenge("s", 11)) gain = gain.tetrate(new Decimal(0.5));
         if (inChallenge("s", 21)) gain = gain.tetrate(new Decimal(0.000000000000000000000000000000000001)).pow(buyableEffect("s", 12))
         if (inChallenge("s", 21)) {

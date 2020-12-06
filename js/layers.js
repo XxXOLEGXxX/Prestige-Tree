@@ -148,7 +148,8 @@ addLayer("s", {
                 if (inChallenge("s", 21) && player[this.layer].buyables[61] >= 2) ret = ret
                 else if (inChallenge("s", 21)) ret = new Decimal(1);
                 if (inChallenge("s", 21) && player[this.layer].buyables[71] >= 1 && player[this.layer].buyables[61] >= 2) ret = ret.mul(buyableEffect("s", 71));
-				if (ret > 2048 && !inChallenge("s", 21)) ret = ret.log(1.01).add(1281.7321141706762185344390997409)
+				if (ret > 28672 && !inChallenge("s", 21) && hasUpgrade("n", 15)) ret = ret.log(1.01).add(27640.509040831862570450875580445)
+				else if (ret > 2048 && !inChallenge("s", 21)) ret = ret.log(1.01).add(1281.7321141706762185344390997409)
                 return ret;
             },
             effectDisplay() {
@@ -1497,15 +1498,18 @@ addLayer("diff", {
 		},
 
         tabFormat: ["main-display",
-                   ["display-text", function() {return "You have " + formatWhole(challengesCompleted()) + " diff challenges completed, multiplying diff base in diff's effect by " + format(new Decimal(16.66).pow(challengesCompleted())) + "x.<br/><br/>Note: Doing any layer reset will reset diff points back to 1.<br/><br/>You have been warned."}],
+                   ["display-text", function() {return hasUpgrade("n", 14) ? "You have " + formatWhole(challengesCompleted()) + " diff challenges completed, multiplying diff base in diff's effect by " + format(new Decimal(16.6666).add(player.n.total.div(50)).pow(challengesCompleted())) + "x.<br/><br/>Note: Doing any layer reset will reset diff points back to 1.<br/><br/>You have been warned." : "You have " + formatWhole(challengesCompleted()) + " diff challenges completed, multiplying diff base in diff's effect by " + format(new Decimal(16.6666).pow(challengesCompleted())) + "x.<br/><br/>Note: Doing any layer reset will reset diff points back to 1.<br/><br/>You have been warned."}],
 				   "challenges"],
 
         row: 0,                                 // The row this layer is on (0 is the first row)
 	    symbol: "D",
 		position: 2,
         resource: "diff points",
-		effect() { let eff = player.diff.points.mul(player.diff.points).mul(new Decimal(16.66).pow(challengesCompleted())).log(2).add(1)
+		effect() { let effyes = new Decimal(16.6666)
+		           if(hasUpgrade("n", 14)) effyes = effyes.add(player.n.total.div(50))
+		           let eff = player.diff.points.mul(player.diff.points).mul(new Decimal(effyes).pow(challengesCompleted())).log(2).add(1)
 		           if(inChallenge("diff", 11)) eff = eff.root(new Decimal(challengeCompletions("diff", 11)).add(2).min(6))
+				   if(player.n.total >= 1) eff = eff.mul(layers.n.effect())
 				   return eff},
 		effectDescription() { return "multiplying diff gain in all functions by " + format(this.effect()) + "." },
         baseAmount() {return player.diff.points},    // A function to return the current value of that resource
@@ -1548,7 +1552,7 @@ addLayer("diff", {
 			21: {
 			    challengeDescription() { return "You get " + formatWhole(new Decimal(10).mul(-1).mul(new Decimal(challengeCompletions("diff", 21)).add(1).min(5))) + " softcap warpers in this challenge.<br/>Challenge completed: " + formatWhole(challengeCompletions("diff", 21)) + "/" + formatWhole(this.completionLimit) },
 				name: "Anti-Motivation",
-				goal: new Decimal(99000),
+				goal: new Decimal(6300),
 				completionLimit: new Decimal(5),
 				rewardDescription: "Early access to Shenanigans Tree's NG--- mode.",
                 currencyDisplayName: "plots",
@@ -1578,8 +1582,184 @@ addLayer("diff", {
 
     doReset(resettingLayer){ // Triggers when this layer is being reset, along with the layer doing the resetting. Not triggered by lower layers resetting, but is by layers on the same row.
         if(layers[resettingLayer].row >= layers[this.layer].row) {
-        if(hasMilestone("a", 1)) player.diff.points = player.diff.points.div(2).max(1)
+		if(layers[resettingLayer] == layers.n && hasUpgrade("n", 12)) player.diff.points = player.diff.points
+        else if(hasMilestone("a", 1)) player.diff.points = player.diff.points.div(2).max(1)
 		else player.diff.points = new Decimal(1)
         }
     } 
+})
+
+addLayer("n", {
+    startData() { return {                  // startData is a function that returns default data for a layer. 
+        unlocked: true,                     // You can add more variables here to add them to your layer.
+        points: new Decimal(0),             // "points" is the internal name for the main resource of the layer.
+		total: new Decimal(0),
+    }},
+
+    color: "#8A7983",                       // The color for this layer, which affects many elements.
+    resource: "symbols",            // The name of this layer's main prestige resource.
+    row: 0,                                 // The row this layer is on (0 is the first row).
+	position: 0,
+
+    baseResource: "shenanigans",                 // The name of the resource your prestige gain is based on.
+    baseAmount() { return player.s.points },  // A function to return the current amount of baseResource.
+	
+	effect() { return player.n.total.div(100).add(1) },
+	
+	midsection: ["blank",
+	            ["display-text", function() { return "Your total symbols boosts diff's effect by " + format(layers.n.effect()) + "x."} ]
+	],
+
+    requires() { if(hasUpgrade("k", 22)) return new Decimal(816110217).mul(0.9).mul(player.n.total.add(1).add(tmp.n.resetGain))
+	             else return new Decimal(816110217).mul(player.n.total.add(1).add(tmp.n.resetGain))},              // The amount of the base needed to  gain 1 of the prestige currency.
+	canBuyMax() { return false },
+
+    type: "normal",                         // Determines the formula used for calculating prestige currency.
+    exponent: 1,                          // "normal" prestige gain is (currency^exponent).
+
+    gainMult() {                            // Returns your multiplier to your gain of the prestige resource.
+        return new Decimal(1)               // Factor in any bonuses multiplying gain here.
+    },
+    gainExp() {                             // Returns your exponent to your gain of the prestige resource.
+        return new Decimal(1)
+    },
+	
+	branches: ["s"],
+
+    layerShown() { return challengeCompletions("diff", 11) >= 1 && challengeCompletions("diff", 12) >= 1 && challengeCompletions("diff", 21) >= 1 && challengeCompletions("diff", 22) >= 1},            // Returns a bool for if this layer's node should be visible in the tree.
+	
+	upgrades: {
+        rows: 1,
+        cols: 5,
+        11: {
+            title: "We're",
+            description: "Boosts plot gain based on Neverup upgrades bought.",
+            cost: new Decimal(5),
+			effect() { return new Decimal(1.5).pow(player.n.upgrades.length) },
+			effectDisplay() { return format(this.effect()) + "x" }
+        },
+        12: {
+            title: "no",
+            description: "Neverup reset doesn't reset diff points.",
+            cost: new Decimal(2),
+			unlocked() { return hasUpgrade("n", 11) }
+        },
+        13: {
+            title: "strangers",
+            description: "Fulfill 2nd diff challenge's reward yourself.",
+            cost: new Decimal(9),
+			unlocked() { return hasUpgrade("n", 12) }
+        },
+        14: {
+            title: "to",
+            description() { return "Your total symbols adds up to diff challenge completions's base effect by +" + format(player.n.total.div(50)) + "." },
+            cost: new Decimal(2),
+			unlocked() { return hasUpgrade("n", 13) }
+        },
+        15: {
+            title: "love",
+            description: "With the power of love, \"Vibing.\"'s softcap starts later.<br/>(2,048x => 28,672x)",
+            cost: new Decimal(4),
+			unlocked() { return hasUpgrade("n", 14) }
+        },
+	},
+    doReset(resettingLayer){ // Triggers when this layer is being reset, along with the layer doing the resetting. Not triggered by lower layers resetting, but is by layers on the same row.
+        if(layers[resettingLayer] == layers.n) {
+        player.s.points = player.s.points.sub(layers.n.requires())
+        }
+    },
+})
+
+addLayer("k", {
+    startData() { return {                  // startData is a function that returns default data for a layer. 
+        unlocked: true,                     // You can add more variables here to add them to your layer.
+        points: new Decimal(0),             // "points" is the internal name for the main resource of the layer.
+		experiences: new Decimal(0),
+    }},
+
+    color: "#4BDC13",                       // The color for this layer, which affects many elements.
+    resource: "knowledge",            // The name of this layer's main prestige resource.
+    row: 1,                                 // The row this layer is on (0 is the first row).
+	position: 0,
+
+    update(diff){
+		if (player.k.unlocked) {
+	    player.k.experiences = player.k.experiences.add(diff / 100)
+		if(hasUpgrade("k", 11)) player.k.experiences = player.k.experiences.add(diff / 100)
+		if(hasUpgrade("k", 12)) player.k.experiences = player.k.experiences.add(diff / 50)
+		if(hasUpgrade("k", 13)) player.k.experiences = player.k.experiences.add(diff / 20)
+		if(hasUpgrade("k", 21)) player.k.experiences = player.k.experiences.add(new Decimal(diff / 100).mul(upgradeEffect("k", 21).mul(100)))
+		if(player.k.experiences >= 1) return hasUpgrade("k", 23) ? player.k.points = player.k.points.add(player.k.experiences.mul(diff / 69)) : player.k.points = player.k.points.add(player.k.experiences.mul(diff / 100))
+		}
+	},
+
+	tabFormat: [["display-text", function() { return "Welcome to the TMT Kindergarten, you little @$(#ing babies. <br/> Today we're going to learn how to make your first mod, in which you'll throw all of your common senses into the trash and go crazy with your creativity. Cool, isn't it?<br/>Now where was I?.. Oh yeah, do some quantum mechanics homework or some @$@!, I'm not your mom to do it for you." }],
+	            "blank",
+	            "main-display",
+	           ["display-text", function() { return "You have " + format(player.k.experiences) + " experiences. Not like you'll need it anyways, unless..." }],
+			   "blank",
+               ["display-text", function() { return player.k.experiences >= 1 ? "You're generating " + format(player.k.experiences.div(100)) + " knowledges per second." : "" }],
+			   "upgrades"],			   
+
+    type: "none",                         // Determines the formula used for calculating prestige currency.
+
+    gainMult() {                            // Returns your multiplier to your gain of the prestige resource.
+        return new Decimal(1)               // Factor in any bonuses multiplying gain here.
+    },
+    gainExp() {                             // Returns your exponent to your gain of the prestige resource.
+        return new Decimal(1)
+    },
+
+    layerShown() { return hasUpgrade("n", 13) },            // Returns a bool for if this layer's node should be visible in the tree.
+	
+	upgrades: {
+		rows: 2,
+		cols: 5,
+		11: {
+			title: "Read Acamaeda's tutorial",
+			description: "You gain 0.01 more experience per second.",
+			cost: new Decimal(1)
+		},
+		12: {
+			title: "Download Github Desktop",
+			description: "You gain 0.02 more experience per second.",
+			cost: new Decimal(1)
+		},
+		13: {
+			title: "Read Acamaeda's documentation and experiment",
+			description: "You gain 0.05 more experience per second.",
+			cost: new Decimal(1)
+		},
+		14: {
+			title: "Programm your first upgrade",
+			description: "Creates a single upgrade nearby.",
+			cost: new Decimal(5)
+		},
+		15: {
+			title: "Accept row's existence",
+			description: "Creates three upgrades on the 2nd row.",
+			cost: new Decimal(17),
+			unlocked() { return hasUpgrade("k", 14) }
+		},
+		21: {
+			title: "\"Apes together strong\"",
+			description: "You gain 0.01 more experience per second for each Kindergarten upgrade bought.",
+			cost: new Decimal(1),
+			effect() { return new Decimal(player.k.upgrades.length).div(100) },
+			effectDisplay() { return format(this.effect()) },
+			unlocked() { return hasUpgrade("k", 15) }
+		},
+		22: {
+			title: "The less the better",
+			description: "Lowers Symbol's initial cost.<br/>(100% => 90%)",
+			cost: new Decimal(2),
+			unlocked() { return hasUpgrade("k", 15) }
+		},
+		23: {
+			title: "Optimization",
+			description: "You learn how to use ?, : and !, buffing your knowledge gain. It also creates two more upgrades on 2nd row. [W.I.P.]",
+			cost: new Decimal(1),
+			unlocked() { return hasUpgrade("k", 15) }
+		},
+	}
 })

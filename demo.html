@@ -6,8 +6,8 @@
 	<script src="https://cdn.jsdelivr.net/npm/vue@2.6.12"></script>
 	<script type="text/javascript" src="js/break_eternity.js"></script>
 	<script type="text/javascript" src="js/layerSupport.js"></script>
-	<script type="text/javascript" src="js/layers.js"></script>
-	<script type="text/javascript" src="js/mod.js"></script>
+	<script type="text/javascript" src="js/demo/demoLayers.js"></script>
+	<script type="text/javascript" src="js/demo/demoMod.js"></script>
 	<script type="text/javascript" src="js/temp.js"></script>
 	<script type="text/javascript" src="js/game.js"></script>
 	<script type="text/javascript" src="js/utils.js"></script>
@@ -26,6 +26,7 @@
 			<h2>{{modInfo.name}} {{VERSION.withoutName}}</h2><br><br>
 			<h3>Congratulations! You have reached the end and beaten this game, but for now...</h3><br>
 			<h3>Please check the Discord to see if there are new content updates!</h3><br><br>
+
 			<div v-if="!player.timePlayedReset">It took you {{formatTime(player.timePlayed)}} to beat the game.</div>
 			<div v-if="player.timePlayedReset">Make sure that you record the time in your stream or else your speedrun won't count!</div>
 			<br>
@@ -162,7 +163,7 @@
 			<div v-if="player.tab==layer" v-bind:class="'col right fast tab'"  v-bind:style="[tmp[layer].style ? tmp[layer].style : {}, (tmp[layer].tabFormat && !Array.isArray(tmp[layer].tabFormat)) ? tmp[layer].tabFormat[player.subtabs[layer].mainTabs].style : {}]">
 				<button class="back" onclick="showTab('tree')">←</button><br><br><br>
 				<div v-if="!tmp[layer].tabFormat">
-					<info-box v-if="tmp[layer].infoboxes" :layer="layer" :data="Object.keys(tmp[layer].infoboxes)[0]"></info-box>
+					<infobox v-if="tmp[layer].infoboxes" v-bind:style="tmp[layer].componentStyles['infobox']" :layer="layer" :data="Object.keys(tmp[layer].infoboxes)[0]"></infobox>
 					<main-display v-bind:style="tmp[layer].componentStyles['main-display']" :layer="layer"></main-display>
 					<div v-if="tmp[layer].type !== 'none'">
 						<prestige-button v-bind:style="tmp[layer].componentStyles['prestige-button']" :layer="layer"></prestige-button>

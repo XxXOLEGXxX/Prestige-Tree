@@ -1,67 +1,158 @@
-function updateTemp() {
-	if (!tmp.hcActive) tmp.hcActive = {}
-	for (let row=1;row<=H_CHALLS.rows;row++) {
-		for (let col=1;col<=H_CHALLS.cols;col++) {
-			let id = row*10+col
-			tmp.hcActive[id] = HCActive(id)
-		}
-	}
-	
-	if (!tmp.layerEffs) tmp.layerEffs = {}
-	for (let name in LAYER_EFFS) tmp.layerEffs[name] = LAYER_EFFS[name]()
-	
-	if (!tmp.layerReqs) tmp.layerReqs = {}
-	for (let name in LAYER_REQS) tmp.layerReqs[name] = getLayerReq(name)
-		
-	if (!tmp.gainMults) tmp.gainMults = {}
-	if (!tmp.resetGain) tmp.resetGain = {}
-	if (!tmp.nextAt) tmp.nextAt = {}
-	if (!tmp.layerAmt) tmp.layerAmt = {}
-	for (let i in LAYERS) {
-		tmp.layerAmt[LAYERS[i]] = getLayerAmt(LAYERS[i])
-		tmp.gainMults[LAYERS[i]] = getLayerGainMult(LAYERS[i])
-		tmp.resetGain[LAYERS[i]] = getResetGain(LAYERS[i])
-		tmp.nextAt[LAYERS[i]] = getNextAt(LAYERS[i])
-	}
-	
-	tmp.pointGen = getPointGen()
-	
-	tmp.atbb = addToBoosterBase()
-	tmp.atgb = addToGenBase()
-	
-	tmp.genPowEff = getGenPowerEff()
-	
-	tmp.enhPow = getEnhancerPow()
-	tmp.enhEff = getEnhancerEff()
-	tmp.enhEff2 = getEnhancerEff2()
-	tmp.subbedEnh = new Decimal(0)
-	if (tmp.hcActive ? tmp.hcActive[52] : true) {
-		tmp.subbedEnh = tmp.subbedEnh.plus(new Decimal(player.h.time).times(40).plus(1).log10().pow(10).max(10)).round()
-	}
-	
-	tmp.freeExtCap = getFreeExtCapsules()
-	tmp.timeEff = getTimeEnergyEff()
-	tmp.attb = addToTimeBase()
-	
-	if (!tmp.spaceBuildEff) tmp.spaceBuildEff = {}
-	for (let i=1;i<=5;i++) tmp.spaceBuildEff[i] = getSpaceBuildingEff(i)
-	tmp.sbUnl = getSpaceBuildingsUnl()
+var tmp = {}
 
-	tmp.quirkEff = getQuirkEnergyEff()
-	tmp.qCB = getQuirkLayerCostBase()
+// Tmp will not call these
+var activeFunctions = [
+	"startData", "onPrestige", "doReset", "update", "automate",
+	"buy", "buyMax", "respec", "onComplete", "onPurchase", "onPress", "onClick", "masterButtonPress",
+	"sellOne", "sellAll",
+]
+
+var noCall = doNotCallTheseFunctionsEveryTick
+for (item in noCall) {
+	activeFunctions.push(noCall[item])
+}
+
+function setupTemp() {
+	tmp = {}
+	tmp.pointGen = {}
+	tmp.displayThings = []
+
+	setupTempData(layers, tmp)
+	for (layer in layers){
+		tmp[layer].resetGain = {}
+		tmp[layer].nextAt = {}
+		tmp[layer].nextAtDisp = {}
+		tmp[layer].notify = {}
+		tmp[layer].canReset = {}
+		tmp[layer].prestigeButtonText = {}
+		setupBarStyles(layer)
+	}
+}
+
+function setupTempData(layerData, tmpData) {
+	for (item in layerData){
+		if (layerData[item] == null) {
+			tmpData[item] = null
+		}
+		else if (layerData[item] instanceof Decimal)
+			tmpData[item] = layerData[item]
+		else if (Array.isArray(layerData[item])) {
+			tmpData[item] = []
+			setupTempData(layerData[item], tmpData[item])
+		}
+		else if ((!!layerData[item]) && (layerData[item].constructor === Object)) {
+			tmpData[item] = {}
+			setupTempData(layerData[item], tmpData[item])
+		}
+		else if (isFunction(layerData[item]) && !activeFunctions.includes(item)){
+			tmpData[item] = new Decimal(1) // The safest thing to put probably?
+		} else {
+			tmpData[item] = layerData[item]
+		}
+	}	
+}
+
+function updateTemp() {
+	if (tmp === undefined)
+		setupTemp()
+
+	updateTempData(layers, tmp)
+
+	for (layer in layers){
+		tmp[layer].resetGain = getResetGain(layer)
+		tmp[layer].nextAt = getNextAt(layer)
+		tmp[layer].nextAtDisp = getNextAt(layer, true)
+		tmp[layer].notify = shouldNotify(layer)
+		tmp[layer].canReset = canReset(layer)
+		tmp[layer].prestigeButtonText = prestigeButtonText(layer)
+		constructBarStyles(layer)
+	}
+
+	tmp.pointGen = getPointGen()
+	tmp.displayThings = []
+	for (thing in displayThings){
+		let text = displayThings[thing]
+		if (isFunction(text)) text = text()
+		tmp.displayThings.push(text) 
+	}
+
+}
+
+function updateTempData(layerData, tmpData) {
 	
-	tmp.ssEff1 = getSubspaceEff1()
-	tmp.ssEff2 = getSubspaceEff2()
-	tmp.ssEff3 = getSubspaceEff3()
-	
-	tmp.balEff = getBalancePowerEff()
-	tmp.balEff2 = getBalanceTypesEff()
-	tmp.baExp = getBalanceEnergyExp()
-	
-	tmp.hexEff = getHexEff()
-	tmp.spellsUnl = player.sp.upgrades.includes(13)?4:3
-	if (!tmp.spellEffs) tmp.spellEffs = {}
-	for (let i=1;i<=4;i++) tmp.spellEffs[i] = getSpellEff(i)
-	
-	tmp.sGenPowEff = getSGenPowEff()
+	for (item in layerData){
+		if (Array.isArray(layerData[item])) {
+			updateTempData(layerData[item], tmpData[item])
+		}
+		else if ((!!layerData[item]) && (layerData[item].constructor === Object)) {
+			updateTempData(layerData[item], tmpData[item])
+		}
+		else if (isFunction(layerData[item]) && !activeFunctions.includes(item)){
+			Vue.set(tmpData, item, layerData[item]())
+		}
+	}	
+}
+
+function updateChallengeTemp(layer)
+{
+	updateTempData(layers[layer].challenges, tmp[layer].challenges)
+}
+
+function updateBuyableTemp(layer)
+{
+	updateTempData(layers[layer].buyables, tmp[layer].buyables)
+}
+
+function updateClickableTemp(layer)
+{
+	updateTempData(layers[layer].clickables, tmp[layer].clickables)
+}
+
+
+var DIR_MARGINS = ["margin-bottom", "margin-top", "margin-right", "margin-left"]
+
+function constructBarStyles(layer){
+	if (layers[layer].bars === undefined)
+		return
+	for (id in layers[layer].bars){
+		if (id !== "layer") {
+			let bar = tmp[layer].bars[id]
+			if (bar.progress instanceof Decimal)
+				bar.progress = bar.progress.toNumber()
+			bar.progress = (1 -Math.min(Math.max(bar.progress, 0), 1)) * 100
+
+			bar.dims = {'width': bar.width + "px", 'height': bar.height + "px"}
+			let dir = bar.direction
+			bar.fillDims = {'width': (bar.width + 0.5) + "px", 'height': (bar.height + 0.5)  + "px"}
+			if (dir !== undefined)
+			{
+				bar.fillDims['clip-path'] = 'inset(0% 50% 0% 0%)'
+				if(dir == UP){
+					bar.fillDims['clip-path'] = 'inset(' + bar.progress + '% 0% 0% 0%)'
+				}
+				else if(dir == DOWN){
+					bar.fillDims['clip-path'] = 'inset(0% 0% ' + bar.progress + '% 0%)'
+				}
+				else if(dir == RIGHT){
+					bar.fillDims['clip-path'] = 'inset(0% ' + bar.progress + '% 0% 0%)'
+				}
+				else if(dir == LEFT){
+					bar.fillDims['clip-path'] = 'inset(0% 0% 0% ' + bar.progress + '%)'
+				}
+
+			}
+		}
+
+	}
+}
+
+function setupBarStyles(layer){
+	if (layers[layer].bars === undefined)
+		return
+	for (id in layers[layer].bars){
+		let bar = tmp[layer].bars[id]
+		bar.dims = {}
+		let dir = bar.direction
+		bar.fillDims = {}
+	}
 }
